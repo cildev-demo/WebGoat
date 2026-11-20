@@ -10,14 +10,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
 /**
- * Provides a real 302 redirect for experimentation separate from assignment scoring.
+ * Provides a real 302 redirect for experimentation with a fixed allow-listed destination.
  */
 @Controller
 public class OpenRedirectRealRedirect {
 
   @GetMapping("/OpenRedirect/realRedirect")
   public ModelAndView real(@RequestParam("url") String url) {
-    // Intentionally vulnerable: no validation
-    return new ModelAndView("redirect:" + url);
+    if ("https://example.com".equals(url)) {
+      return new ModelAndView("redirect:https://example.com");
+    }
+    return new ModelAndView("redirect:/welcome.mvc");
   }
 }
