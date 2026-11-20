@@ -7,6 +7,9 @@ package org.owasp.webgoat.lessons.cia;
 import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
 import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import org.owasp.webgoat.container.CurrentUsername;
 import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
 import org.owasp.webgoat.container.assignments.AttackResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,11 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class CIAQuiz implements AssignmentEndpoint {
 
   private final String[] solutions = {"Solution 3", "Solution 1", "Solution 4", "Solution 2"};
-  boolean[] guesses = new boolean[solutions.length];
+  private final Map<String, boolean[]> guesses = new ConcurrentHashMap<>();
 
   @PostMapping("/cia/quiz")
   @ResponseBody
   public AttackResult completed(
+      @CurrentUsername String username,
       @RequestParam String[] question_0_solution,
       @RequestParam String[] question_1_solution,
       @RequestParam String[] question_2_solution,
@@ -34,16 +38,18 @@ public class CIAQuiz implements AssignmentEndpoint {
       question_0_solution[0], question_1_solution[0], question_2_solution[0], question_3_solution[0]
     };
 
+    boolean[] results = new boolean[solutions.length];
     for (int i = 0; i < solutions.length; i++) {
       if (givenAnswers[i].contains(solutions[i])) {
         // answer correct
         correctAnswers++;
-        guesses[i] = true;
+        results[i] = true;
       } else {
         // answer incorrect
-        guesses[i] = false;
+        results[i] = false;
       }
     }
+    guesses.put(username, results);
 
     if (correctAnswers == solutions.length) {
       return success(this).build();
@@ -54,7 +60,7 @@ public class CIAQuiz implements AssignmentEndpoint {
 
   @GetMapping("/cia/quiz")
   @ResponseBody
-  public boolean[] getResults() {
-    return this.guesses;
+  public boolean[] getResults(@CurrentUsername String username) {
+    return guesses.getOrDefault(username, new boolean[solutions.length]);
   }
 }
