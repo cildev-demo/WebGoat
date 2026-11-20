@@ -17,7 +17,8 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /** Security configuration for WebGoat. */
@@ -41,9 +42,12 @@ public class WebSecurityConfig {
                         "/plugins/**",
                         "/proxy.pac",
                         "/registration",
-                        "/register.mvc",
-                        "/actuator/**")
+                        "/register.mvc")
                     .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/actuator/health")
+                    .permitAll()
+                    .requestMatchers("/actuator/**")
+                    .hasAuthority("WEBGOAT_ADMIN")
                     // Lessons deliver mail by POSTing to the mailbox over HTTP (RestTemplate),
                     // which carries no session, so the receiving endpoint must be public. Reading
                     // the mailbox (GET /mail) stays authenticated so users only see their own mail.
@@ -69,7 +73,7 @@ public class WebSecurityConfig {
             })
         .logout(logout -> logout.deleteCookies("JSESSIONID").invalidateHttpSession(true))
         .csrf(csrf -> csrf.disable())
-        .headers(headers -> headers.disable())
+        .headers(headers -> headers.frameOptions(frame -> frame.deny()))
         .exceptionHandling(
             handling ->
                 handling.authenticationEntryPoint(new AjaxAuthenticationEntryPoint("/login")))
@@ -94,7 +98,7 @@ public class WebSecurityConfig {
   }
 
   @Bean
-  public NoOpPasswordEncoder passwordEncoder() {
-    return (NoOpPasswordEncoder) NoOpPasswordEncoder.getInstance();
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
   }
 }
