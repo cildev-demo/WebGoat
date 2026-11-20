@@ -12,11 +12,11 @@ import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.impl.TextCodec;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.Random;
 import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
 import org.owasp.webgoat.container.assignments.AssignmentHints;
 import org.owasp.webgoat.container.assignments.AttackResult;
@@ -31,11 +31,13 @@ import org.springframework.web.bind.annotation.RestController;
 @AssignmentHints({"jwt-secret-hint1", "jwt-secret-hint2", "jwt-secret-hint3"})
 public class JWTSecretKeyEndpoint implements AssignmentEndpoint {
 
+  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
   public static final String[] SECRETS = {
     "victory", "business", "available", "shipping", "washington"
   };
   public static final String JWT_SECRET =
-      TextCodec.BASE64.encode(SECRETS[new Random().nextInt(SECRETS.length)]);
+      TextCodec.BASE64.encode(SECRETS[SECURE_RANDOM.nextInt(SECRETS.length)]);
   private static final String WEBGOAT_USER = "WebGoat";
   private static final List<String> expectedClaims =
       List.of("iss", "iat", "exp", "aud", "sub", "username", "Email", "Role");

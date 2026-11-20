@@ -10,17 +10,17 @@ import static org.springframework.http.ResponseEntity.ok;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Header;
-import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
 import org.owasp.webgoat.container.assignments.AssignmentHints;
 import org.owasp.webgoat.container.assignments.AttackResult;
@@ -43,8 +43,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class JWTRefreshEndpoint implements AssignmentEndpoint {
 
   public static final String PASSWORD = "bm5nhSkxCXZkKRy4";
-  private static final String JWT_PASSWORD = "bm5n3SkxCX4kKRy4";
+  private static final byte[] JWT_SIGNING_KEY = new byte[64];
+  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
   private static final List<String> validRefreshTokens = new ArrayList<>();
+
+  static {
+    SECURE_RANDOM.nextBytes(JWT_SIGNING_KEY);
+  }
 
   @PostMapping(
       value = "/JWT/refresh/login",
@@ -70,14 +75,20 @@ public class JWTRefreshEndpoint implements AssignmentEndpoint {
         Jwts.builder()
             .setIssuedAt(new Date(System.currentTimeMillis() + TimeUnit.DAYS.toDays(10)))
             .setClaims(claims)
-            .signWith(io.jsonwebtoken.SignatureAlgorithm.HS512, JWT_PASSWORD)
+            .signWith(io.jsonwebtoken.SignatureAlgorithm.HS512, JWT_SIGNING_KEY)
             .compact();
     Map<String, Object> tokenJson = new HashMap<>();
-    String refreshToken = RandomStringUtils.randomAlphabetic(20);
+    String refreshToken = generateRefreshToken();
     validRefreshTokens.add(refreshToken);
     tokenJson.put("access_token", token);
     tokenJson.put("refresh_token", refreshToken);
     return tokenJson;
+  }
+
+  private String generateRefreshToken() {
+    byte[] bytes = new byte[32];
+    SECURE_RANDOM.nextBytes(bytes);
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
   }
 
   @PostMapping("/JWT/refresh/checkout")
@@ -88,8 +99,11 @@ public class JWTRefreshEndpoint implements AssignmentEndpoint {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
     try {
-      Jwt jwt = Jwts.parser().setSigningKey(JWT_PASSWORD).parse(token.replace("Bearer ", ""));
-      Claims claims = (Claims) jwt.getBody();
+      Jws<Claims> jwt =
+          Jwts.parser()
+              .setSigningKey(JWT_SIGNING_KEY)
+              .parseClaimsJws(token.replace("Bearer ", ""));
+      Claims claims = jwt.getBody();
       String user = (String) claims.get("user");
       if ("Tom".equals(user)) {
         if ("none".equals(jwt.getHeader().get("alg"))) {
@@ -117,8 +131,10 @@ public class JWTRefreshEndpoint implements AssignmentEndpoint {
     String user;
     String refreshToken;
     try {
-      Jwt<Header, Claims> jwt =
-          Jwts.parser().setSigningKey(JWT_PASSWORD).parse(token.replace("Bearer ", ""));
+      Jws<Claims> jwt =
+          Jwts.parser()
+              .setSigningKey(JWT_SIGNING_KEY)
+              .parseClaimsJws(token.replace("Bearer ", ""));
       user = (String) jwt.getBody().get("user");
       refreshToken = (String) json.get("refresh_token");
     } catch (ExpiredJwtException e) {
