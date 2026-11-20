@@ -5,7 +5,6 @@
 package org.owasp.webgoat.lessons.httpparameterpollution;
 
 import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
-import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
@@ -33,22 +32,20 @@ public class ParameterPollutionTransfer implements AssignmentEndpoint {
           .feedback("http-parameter-pollution.transfer.missing-recipient")
           .build();
     }
+    if (recipients.length != 1) {
+      return failed(this).feedback("http-parameter-pollution.transfer.invalid-recipient").build();
+    }
 
     Integer amount = readAmount(request.getParameterValues("amount"));
     if (amount == null) {
       return failed(this).feedback("http-parameter-pollution.transfer.invalid-amount").build();
     }
 
-    String validatedRecipient = recipients[0];
-    String actualRecipient = recipients[recipients.length - 1];
-
-    if (!"alice".equals(validatedRecipient)) {
+    String recipient = recipients[0];
+    if (!"alice".equals(recipient)) {
       return failed(this).feedback("http-parameter-pollution.transfer.unauthorized").build();
     }
-    if ("attacker".equals(actualRecipient) && amount == 100) {
-      return success(this).feedback("http-parameter-pollution.transfer.success").build();
-    }
-    if ("alice".equals(actualRecipient) && amount == 100) {
+    if (amount == 100) {
       return failed(this).feedback("http-parameter-pollution.transfer.allowed").build();
     }
     return failed(this).feedback("http-parameter-pollution.transfer.invalid-recipient").build();
