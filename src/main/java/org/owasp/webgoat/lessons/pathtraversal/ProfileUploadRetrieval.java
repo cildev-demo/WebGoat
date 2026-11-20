@@ -90,21 +90,89 @@ public class ProfileUploadRetrieval implements AssignmentEndpoint {
   @GetMapping("/PathTraversal/random-picture")
   @ResponseBody
   public ResponseEntity<?> getProfilePicture(HttpServletRequest request) {
-    var queryParams = request.getQueryString();
-    if (queryParams != null && (queryParams.contains("..") || queryParams.contains("/"))) {
-      return ResponseEntity.badRequest()
-          .body("Illegal characters are not allowed in the query params");
+    String id = request.getParameter("id");
+    String catPictureName;
+    if (id == null) {
+      switch (RandomUtils.nextInt(1, 11)) {
+        case 1:
+          catPictureName = "1.jpg";
+          break;
+        case 2:
+          catPictureName = "2.jpg";
+          break;
+        case 3:
+          catPictureName = "3.jpg";
+          break;
+        case 4:
+          catPictureName = "4.jpg";
+          break;
+        case 5:
+          catPictureName = "5.jpg";
+          break;
+        case 6:
+          catPictureName = "6.jpg";
+          break;
+        case 7:
+          catPictureName = "7.jpg";
+          break;
+        case 8:
+          catPictureName = "8.jpg";
+          break;
+        case 9:
+          catPictureName = "9.jpg";
+          break;
+        default:
+          catPictureName = "10.jpg";
+      }
+    } else {
+      switch (id) {
+        case "1":
+        case "1.jpg":
+          catPictureName = "1.jpg";
+          break;
+        case "2":
+        case "2.jpg":
+          catPictureName = "2.jpg";
+          break;
+        case "3":
+        case "3.jpg":
+          catPictureName = "3.jpg";
+          break;
+        case "4":
+        case "4.jpg":
+          catPictureName = "4.jpg";
+          break;
+        case "5":
+        case "5.jpg":
+          catPictureName = "5.jpg";
+          break;
+        case "6":
+        case "6.jpg":
+          catPictureName = "6.jpg";
+          break;
+        case "7":
+        case "7.jpg":
+          catPictureName = "7.jpg";
+          break;
+        case "8":
+        case "8.jpg":
+          catPictureName = "8.jpg";
+          break;
+        case "9":
+        case "9.jpg":
+          catPictureName = "9.jpg";
+          break;
+        case "10":
+        case "10.jpg":
+          catPictureName = "10.jpg";
+          break;
+        default:
+          return ResponseEntity.badRequest().body("Invalid picture id");
+      }
     }
     try {
-      var id = request.getParameter("id");
-      var catPicture =
-          new File(catPicturesDirectory, (id == null ? RandomUtils.nextInt(1, 11) : id) + ".jpg");
+      var catPicture = new File(catPicturesDirectory, catPictureName);
 
-      if (catPicture.getName().toLowerCase().contains("path-traversal-secret.jpg")) {
-        return ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType(MediaType.IMAGE_JPEG_VALUE))
-            .body(FileCopyUtils.copyToByteArray(catPicture));
-      }
       if (catPicture.exists()) {
         return ResponseEntity.ok()
             .contentType(MediaType.parseMediaType(MediaType.IMAGE_JPEG_VALUE))

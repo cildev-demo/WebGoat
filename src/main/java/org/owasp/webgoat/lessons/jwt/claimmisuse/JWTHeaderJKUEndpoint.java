@@ -37,6 +37,8 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 })
 public class JWTHeaderJKUEndpoint implements AssignmentEndpoint {
 
+  private static final String JKU_URL = "http://127.0.0.1:8080/WebGoat/images/jwks.json";
+
   @PostMapping("/JWT/jku/follow/{user}")
   public @ResponseBody String follow(@PathVariable("user") String user) {
     if ("Jerry".equals(user)) {
@@ -54,7 +56,10 @@ public class JWTHeaderJKUEndpoint implements AssignmentEndpoint {
       try {
         var decodedJWT = JWT.decode(token);
         var jku = decodedJWT.getHeaderClaim("jku");
-        var jwkProvider = new JwkProviderBuilder(new URL(jku.asString())).build();
+        if (jku == null || !JKU_URL.equals(jku.asString())) {
+          return failed(this).feedback("jwt-invalid-token").build();
+        }
+        var jwkProvider = new JwkProviderBuilder(new URL(JKU_URL)).build();
         var jwk = jwkProvider.get(decodedJWT.getKeyId());
         var algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey());
         JWT.require(algorithm).build().verify(decodedJWT);

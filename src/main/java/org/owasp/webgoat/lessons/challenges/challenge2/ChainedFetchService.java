@@ -7,7 +7,6 @@ package org.owasp.webgoat.lessons.challenges.challenge2;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -47,11 +46,7 @@ public class ChainedFetchService {
         if (redirects == MAX_REDIRECTS) {
           throw new IllegalArgumentException("Too many redirects");
         }
-        // The source path is checked once. Redirect targets intentionally bypass that check.
         current = followRedirect(current);
-      } else if (path.equals(lessonRoot + INTERNAL_PATH)) {
-        ResponseEntity<Map<String, String>> response = diagnostic.diagnostics(state.internalToken());
-        return new FetchResult(response.getBody().get("flag"), redirects, true);
       } else {
         throw new IllegalArgumentException("This lesson cannot fetch that resource");
       }
