@@ -31,6 +31,8 @@ import org.springframework.web.multipart.MultipartFile;
 @Getter
 public class ProfileUploadBase implements AssignmentEndpoint {
 
+  private static final String SAFE_PROFILE_FILE_NAME = "profile.jpg";
+
   private final String webGoatHomeDirectory;
 
   public ProfileUploadBase(String webGoatHomeDirectory) {
@@ -48,7 +50,7 @@ public class ProfileUploadBase implements AssignmentEndpoint {
     File uploadDirectory = cleanupAndCreateDirectoryForUser(username);
 
     try {
-      var uploadedFile = new File(uploadDirectory, fullName);
+      var uploadedFile = new File(uploadDirectory, SAFE_PROFILE_FILE_NAME);
       uploadedFile.createNewFile();
       FileCopyUtils.copy(file.getBytes(), uploadedFile);
 
