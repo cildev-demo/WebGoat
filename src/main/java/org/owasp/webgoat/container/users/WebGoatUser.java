@@ -14,6 +14,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Getter
 @Entity
@@ -21,6 +23,8 @@ public class WebGoatUser implements UserDetails {
 
   public static final String ROLE_USER = "WEBGOAT_USER";
   public static final String ROLE_ADMIN = "WEBGOAT_ADMIN";
+
+  private static final PasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
 
   @Id private String username;
   private String password;
@@ -35,7 +39,7 @@ public class WebGoatUser implements UserDetails {
 
   public WebGoatUser(String username, String password, String role) {
     this.username = username;
-    this.password = password;
+    this.password = PASSWORD_ENCODER.encode(password);
     this.role = role;
     createUser();
   }

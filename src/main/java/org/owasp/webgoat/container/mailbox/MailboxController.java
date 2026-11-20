@@ -4,6 +4,7 @@
  */
 package org.owasp.webgoat.container.mailbox;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -57,16 +58,26 @@ public class MailboxController {
 
   @PostMapping("/mail")
   @ResponseStatus(HttpStatus.CREATED)
-  public void sendEmail(@RequestBody Email email) {
-    // time is @JsonIgnore (server-controlled). Stamp the receipt time here: Spring Boot 4 / Jackson
-    // 3 deserializes via the all-args constructor, which bypasses the field's default initializer.
-    email.setTime(LocalDateTime.now());
+  public void sendEmail(@RequestBody IncomingEmail incomingEmail) {
+    Email email =
+        Email.builder()
+            .time(LocalDateTime.now())
+            .contents(incomingEmail.contents())
+            .sender(incomingEmail.sender())
+            .title(incomingEmail.title())
+            .recipient(incomingEmail.recipient())
+            .build();
     mailboxRepository.save(email);
   }
 
   @DeleteMapping("/mail")
   @ResponseStatus(HttpStatus.ACCEPTED)
-  public void deleteAllMail() {
-    mailboxRepository.deleteAll();
+  public void deleteAllMail(Authentication authentication) {
+    String username = (null != authentication) ? authentication.getName() : "anonymous";
+    mailboxRepository.deleteAll(mailboxRepository.findByRecipientOrderByTimeDesc(username));
   }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public record IncomingEmail(
+      LocalDateTime time, String contents, String sender, String title, String recipient) {}
 }
