@@ -59,20 +59,29 @@ public class VulnerableTaskHolder implements Serializable {
       throw new IllegalArgumentException("outdated");
     }
 
-    // condition is here to prevent you from destroying the goat altogether
-    if ((taskAction.startsWith("sleep") || taskAction.startsWith("ping"))
-        && taskAction.length() < 22) {
-      log.info("about to execute: {}", taskAction);
-      try {
-        Process p = Runtime.getRuntime().exec(taskAction);
-        BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
-        String line = null;
-        while ((line = in.readLine()) != null) {
-          log.info(line);
-        }
-      } catch (IOException e) {
-        log.error("IO Exception", e);
+    try {
+      Process p = null;
+      if ("sleep 5".equals(taskAction)) {
+        p = new ProcessBuilder("sleep", "5").start();
+      } else if ("sleep 10".equals(taskAction)) {
+        p = new ProcessBuilder("sleep", "10").start();
+      } else if ("ping -c 1 localhost".equals(taskAction)) {
+        p = new ProcessBuilder("ping", "-c", "1", "localhost").start();
+      } else if ("ping -c 1 127.0.0.1".equals(taskAction)) {
+        p = new ProcessBuilder("ping", "-c", "1", "127.0.0.1").start();
       }
+      if (p != null) {
+        log.info("about to execute allowed task");
+        try (BufferedReader in =
+            new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+          String line;
+          while ((line = in.readLine()) != null) {
+            log.info(line);
+          }
+        }
+      }
+    } catch (IOException e) {
+      log.error("IO Exception", e);
     }
   }
 }

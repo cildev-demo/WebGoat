@@ -18,7 +18,9 @@ import org.owasp.webgoat.container.lessons.Initializable;
 import org.owasp.webgoat.container.users.WebGoatUser;
 import org.owasp.webgoat.lessons.commandinjection.CommandExecutionService.CommandExecutionResult;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class CommandInjectionTask3Service implements Initializable {
@@ -101,11 +103,25 @@ public class CommandInjectionTask3Service implements Initializable {
   }
 
   private String buildCommand(String title) {
-    String trimmedTitle = title == null ? "" : title.trim();
+    String searchTerm = resolveSearchTerm(title);
     if (CommandExecutionService.isWindows()) {
-      return "findstr /I " + trimmedTitle + " images\\*.txt";
+      return "findstr /I " + searchTerm + " images\\*.txt";
     }
-    return "grep " + trimmedTitle + " images/*.txt";
+    return "grep " + searchTerm + " images/*.txt";
+  }
+
+  private String resolveSearchTerm(String title) {
+    String normalized = title == null ? "" : title.trim().toLowerCase(Locale.ROOT);
+    return switch (normalized) {
+      case "luna" -> "Luna";
+      case "milo" -> "Milo";
+      case "pixel" -> "Pixel";
+      case "nala" -> "Nala";
+      case "tiger" -> "Tiger";
+      default ->
+          throw new ResponseStatusException(
+              HttpStatus.BAD_REQUEST, "commandinjection.task3.failure.payload");
+    };
   }
 
   public record SearchResponse(

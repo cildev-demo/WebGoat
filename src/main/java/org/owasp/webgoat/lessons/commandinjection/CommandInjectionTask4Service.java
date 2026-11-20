@@ -17,12 +17,12 @@ import org.owasp.webgoat.container.lessons.Initializable;
 import org.owasp.webgoat.container.users.WebGoatUser;
 import org.owasp.webgoat.lessons.commandinjection.CommandExecutionService.CommandExecutionResult;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class CommandInjectionTask4Service implements Initializable {
-
-  private static final List<String> DENY_LIST = List.of(";", "&&", "|");
 
   private final String webGoatHomeDirectory;
   private final Map<String, String> userApiKeys = new ConcurrentHashMap<>();
@@ -41,11 +41,25 @@ public class CommandInjectionTask4Service implements Initializable {
 
   public SearchResponse search(WebGoatUser user, String title) {
     ensureInitialized(user);
-    SanitizedPayload payload = sanitizeTitle(title);
-    String command = buildCommand(payload.sanitizedTitle());
+    String requested = title == null ? "" : title.trim();
+    String command;
+    if (requested.equalsIgnoreCase("Luna")) {
+      command = buildCommand("Luna");
+    } else if (requested.equalsIgnoreCase("Milo")) {
+      command = buildCommand("Milo");
+    } else if (requested.equalsIgnoreCase("Pixel")) {
+      command = buildCommand("Pixel");
+    } else if (requested.equalsIgnoreCase("Nala")) {
+      command = buildCommand("Nala");
+    } else if (requested.equalsIgnoreCase("Tiger")) {
+      command = buildCommand("Tiger");
+    } else {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "commandinjection.task4.failure.payload");
+    }
     CommandExecutionResult executionResult =
         commandExecutionService.execute(userDirectories.get(user.getUsername()), command);
-    String console = buildConsole(command, executionResult, payload);
+    String console = buildConsole(command, executionResult);
     List<CatView> cats =
         catService.extractMatches(executionResult.output()).stream()
             .map(cat -> new CatView(cat.name(), cat.description(), cat.dataUri()))
@@ -76,29 +90,8 @@ public class CommandInjectionTask4Service implements Initializable {
     ensureInitialized(user);
   }
 
-  private SanitizedPayload sanitizeTitle(String title) {
-    if (title == null) {
-      return new SanitizedPayload("", false);
-    }
-    String sanitized = title;
-    boolean filtered = false;
-    for (String token : DENY_LIST) {
-      if (sanitized.contains(token)) {
-        filtered = true;
-        sanitized = sanitized.replace(token, " ");
-      }
-    }
-    return new SanitizedPayload(sanitized.trim(), filtered);
-  }
-
-  private String buildConsole(
-      String command,
-      CommandExecutionResult result,
-      SanitizedPayload payload) {
+  private String buildConsole(String command, CommandExecutionResult result) {
     StringBuilder console = new StringBuilder();
-    if (payload.filtered()) {
-      console.append("[Filter] Removed characters: ;, &&, |\n");
-    }
     console.append("Command: ").append(command).append("\n");
     console.append(result.output());
     if (result.timedOut()) {
@@ -141,6 +134,4 @@ public class CommandInjectionTask4Service implements Initializable {
       List<CatView> cats) {}
 
   public record CatView(String name, String description, String dataUri) {}
-
-  private record SanitizedPayload(String sanitizedTitle, boolean filtered) {}
 }
