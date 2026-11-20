@@ -1,3 +1,17 @@
+# Lab build (Blue-Oryx onboarding): build the jar inside Docker, so the image
+# needs no prebuilt target/ in the build context.
+FROM docker.io/eclipse-temurin:25-jdk-noble AS build
+WORKDIR /src
+ENV MAVEN_OPTS="-Xmx1g"
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+# Cache the dependencies in their own layer while pom.xml is unchanged. A
+# plugin go-offline cannot resolve is fetched by package below instead.
+RUN ./mvnw -B -ntp dependency:go-offline -Dmaven.test.skip=true || true
+COPY config/ config/
+COPY src/ src/
+RUN ./mvnw -B -ntp package -Dmaven.test.skip=true
+
 # We need JDK as some of the lessons needs to be able to compile Java code
 FROM docker.io/eclipse-temurin:25-jdk-noble
 
@@ -11,7 +25,7 @@ RUN \
 
 USER webgoat
 
-COPY --chown=webgoat target/webgoat-*.jar /home/webgoat/webgoat.jar
+COPY --from=build --chown=webgoat /src/target/webgoat-*.jar /home/webgoat/webgoat.jar
 
 EXPOSE 8080
 EXPOSE 9090

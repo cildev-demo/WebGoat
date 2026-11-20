@@ -1,4 +1,4 @@
-**
-
-!/target
-!/config/desktop
+# Lab build: the jar is built inside Docker (see Dockerfile).
+target/
+.git/
+docs/
