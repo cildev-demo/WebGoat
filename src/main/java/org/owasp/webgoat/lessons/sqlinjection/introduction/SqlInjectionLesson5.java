@@ -58,11 +58,21 @@ public class SqlInjectionLesson5 implements AssignmentEndpoint {
   }
 
   protected AttackResult injectableQuery(String query) {
+    String normalizedQuery = normalize(query);
+    if (!isAllowedGrant(normalizedQuery)) {
+      return failed(this).output("Your query was: " + query).build();
+    }
     try (Connection connection = dataSource.getConnection()) {
       try (Statement statement =
           connection.createStatement(
               ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-        statement.executeQuery(query);
+        if (isGrantAll(normalizedQuery)) {
+          statement.execute("GRANT ALL ON grant_rights TO unauthorized_user");
+        } else if (isGrantAllPrivileges(normalizedQuery)) {
+          statement.execute("GRANT ALL PRIVILEGES ON grant_rights TO unauthorized_user");
+        } else {
+          statement.execute("GRANT SELECT ON grant_rights TO unauthorized_user");
+        }
         if (checkSolution(connection)) {
           return success(this).build();
         }
@@ -74,6 +84,33 @@ public class SqlInjectionLesson5 implements AssignmentEndpoint {
               this.getClass().getName() + " : " + e.getMessage() + "<br> Your query was: " + query)
           .build();
     }
+  }
+
+  private static String normalize(String query) {
+    if (query == null) {
+      return "";
+    }
+    String normalized = query.trim();
+    while (normalized.endsWith(";")) {
+      normalized = normalized.substring(0, normalized.length() - 1).trim();
+    }
+    return normalized;
+  }
+
+  private static boolean isAllowedGrant(String query) {
+    return isGrantSelect(query) || isGrantAll(query) || isGrantAllPrivileges(query);
+  }
+
+  private static boolean isGrantSelect(String query) {
+    return "GRANT SELECT ON grant_rights TO unauthorized_user".equalsIgnoreCase(query);
+  }
+
+  private static boolean isGrantAll(String query) {
+    return "GRANT ALL ON grant_rights TO unauthorized_user".equalsIgnoreCase(query);
+  }
+
+  private static boolean isGrantAllPrivileges(String query) {
+    return "GRANT ALL PRIVILEGES ON grant_rights TO unauthorized_user".equalsIgnoreCase(query);
   }
 
   private boolean checkSolution(Connection connection) {
