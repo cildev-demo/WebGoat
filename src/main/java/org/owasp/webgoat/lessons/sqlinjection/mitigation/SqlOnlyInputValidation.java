@@ -29,10 +29,11 @@ public class SqlOnlyInputValidation implements AssignmentEndpoint {
   @PostMapping("/SqlOnlyInputValidation/attack")
   @ResponseBody
   public AttackResult attack(@RequestParam("userid_sql_only_input_validation") String userId) {
-    if (userId.contains(" ")) {
+    String accountName = validatedLastName(userId);
+    if (accountName == null) {
       return failed(this).feedback("SqlOnlyInputValidation-failed").build();
     }
-    AttackResult attackResult = lesson6a.injectableQuery(userId);
+    AttackResult attackResult = lesson6a.injectableQuery(accountName);
     return new AttackResult(
         attackResult.isLessonCompleted(),
         attackResult.getFeedback(),
@@ -41,5 +42,31 @@ public class SqlOnlyInputValidation implements AssignmentEndpoint {
         attackResult.getOutputArgs(),
         getClass().getSimpleName(),
         true);
+  }
+
+  private static String validatedLastName(String userId) {
+    if (userId == null) {
+      return null;
+    }
+    if ("Snow".equalsIgnoreCase(userId)) {
+      return "Snow";
+    } else if ("Smith".equalsIgnoreCase(userId)) {
+      return "Smith";
+    } else if ("Plane".equalsIgnoreCase(userId)) {
+      return "Plane";
+    } else if ("Hershey".equalsIgnoreCase(userId)) {
+      return "Hershey";
+    } else if ("youaretheweakestlink".equalsIgnoreCase(userId)) {
+      return "youaretheweakestlink";
+    } else if ("Sand".equalsIgnoreCase(userId)) {
+      return "Sand";
+    } else if ("Something".equalsIgnoreCase(userId)) {
+      return "Something";
+    } else if ("Monkey".equalsIgnoreCase(userId)) {
+      return "Monkey";
+    } else if ("Goat".equalsIgnoreCase(userId)) {
+      return "Goat";
+    }
+    return null;
   }
 }

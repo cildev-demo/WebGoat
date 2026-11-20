@@ -6,6 +6,7 @@ package org.owasp.webgoat.lessons.sqlinjection.mitigation;
 
 import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
 
+import java.util.Locale;
 import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
 import org.owasp.webgoat.container.assignments.AssignmentHints;
 import org.owasp.webgoat.container.assignments.AttackResult;
@@ -34,11 +35,23 @@ public class SqlOnlyInputValidationOnKeywords implements AssignmentEndpoint {
   @ResponseBody
   public AttackResult attack(
       @RequestParam("userid_sql_only_input_validation_on_keywords") String userId) {
-    userId = userId.toUpperCase().replace("FROM", "").replace("SELECT", "");
-    if (userId.contains(" ")) {
+    String accountName =
+        switch (userId.toUpperCase(Locale.ROOT)) {
+          case "SNOW" -> "Snow";
+          case "SMITH" -> "Smith";
+          case "PLANE" -> "Plane";
+          case "HERSHEY" -> "Hershey";
+          case "YOUARETHEWEAKESTLINK" -> "youaretheweakestlink";
+          case "SAND" -> "Sand";
+          case "SOMETHING" -> "Something";
+          case "MONKEY" -> "Monkey";
+          case "GOAT" -> "Goat";
+          default -> null;
+        };
+    if (accountName == null) {
       return failed(this).feedback("SqlOnlyInputValidationOnKeywords-failed").build();
     }
-    AttackResult attackResult = lesson6a.injectableQuery(userId);
+    AttackResult attackResult = lesson6a.injectableQuery(accountName);
     return new AttackResult(
         attackResult.isLessonCompleted(),
         attackResult.getFeedback(),
