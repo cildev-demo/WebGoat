@@ -10,6 +10,7 @@ import static org.owasp.webgoat.container.assignments.AttackResultBuilder.succes
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InvalidClassException;
+import java.io.ObjectInputFilter;
 import java.io.ObjectInputStream;
 import java.util.Base64;
 import org.dummy.insecure.framework.VulnerableTaskHolder;
@@ -29,6 +30,26 @@ import org.springframework.web.bind.annotation.RestController;
 })
 public class InsecureDeserializationTask implements AssignmentEndpoint {
 
+  private static final ObjectInputFilter DESERIALIZATION_FILTER =
+      info -> {
+        if (info.depth() > 20 || info.references() > 100 || info.arrayLength() > 10000) {
+          return ObjectInputFilter.Status.REJECTED;
+        }
+        Class<?> serialClass = info.serialClass();
+        if (serialClass == null) {
+          return ObjectInputFilter.Status.UNDECIDED;
+        }
+        String className = serialClass.getName();
+        if (className.equals(VulnerableTaskHolder.class.getName())
+            || className.equals(String.class.getName())
+            || className.equals("java.time.Ser")
+            || className.equals("[B")
+            || className.equals("[C")) {
+          return ObjectInputFilter.Status.ALLOWED;
+        }
+        return ObjectInputFilter.Status.REJECTED;
+      };
+
   @PostMapping("/InsecureDeserialization/task")
   @ResponseBody
   public AttackResult completed(@RequestParam String token) throws IOException {
@@ -41,6 +62,7 @@ public class InsecureDeserializationTask implements AssignmentEndpoint {
 
     try (ObjectInputStream ois =
         new ObjectInputStream(new ByteArrayInputStream(Base64.getDecoder().decode(b64token)))) {
+      ois.setObjectInputFilter(DESERIALIZATION_FILTER);
       before = System.currentTimeMillis();
       Object o = ois.readObject();
       if (!(o instanceof VulnerableTaskHolder)) {
