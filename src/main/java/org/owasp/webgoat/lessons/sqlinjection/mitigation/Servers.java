@@ -44,13 +44,42 @@ public class Servers {
   @ResponseBody
   public List<Server> sort(@RequestParam String column) throws Exception {
     List<Server> servers = new ArrayList<>();
+    String query;
+    switch (column) {
+      case "hostname":
+        query =
+            "select id, hostname, ip, mac, status, description from SERVERS where status <> 'out"
+                + " of order' order by hostname";
+        break;
+      case "ip":
+        query =
+            "select id, hostname, ip, mac, status, description from SERVERS where status <> 'out"
+                + " of order' order by ip";
+        break;
+      case "mac":
+        query =
+            "select id, hostname, ip, mac, status, description from SERVERS where status <> 'out"
+                + " of order' order by mac";
+        break;
+      case "status":
+        query =
+            "select id, hostname, ip, mac, status, description from SERVERS where status <> 'out"
+                + " of order' order by status";
+        break;
+      case "description":
+        query =
+            "select id, hostname, ip, mac, status, description from SERVERS where status <> 'out"
+                + " of order' order by description";
+        break;
+      default:
+        query =
+            "select id, hostname, ip, mac, status, description from SERVERS where status <> 'out"
+                + " of order' order by id";
+        break;
+    }
 
     try (var connection = dataSource.getConnection()) {
-      try (var statement =
-          connection.prepareStatement(
-              "select id, hostname, ip, mac, status, description from SERVERS where status <> 'out"
-                  + " of order' order by "
-                  + column)) {
+      try (var statement = connection.prepareStatement(query)) {
         try (var rs = statement.executeQuery()) {
           while (rs.next()) {
             Server server =
