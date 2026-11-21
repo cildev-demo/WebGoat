@@ -7,14 +7,18 @@ package org.owasp.webgoat.lessons.missingac;
 import static org.owasp.webgoat.lessons.missingac.MissingFunctionAC.PASSWORD_SALT_ADMIN;
 import static org.owasp.webgoat.lessons.missingac.MissingFunctionAC.PASSWORD_SALT_SIMPLE;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.owasp.webgoat.container.CurrentUsername;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -51,6 +55,7 @@ public class MissingFunctionACUsers {
       path = {"access-control/users"},
       consumes = "application/json")
   @ResponseBody
+  @PreAuthorize("hasAuthority('WEBGOAT_ADMIN')")
   public ResponseEntity<List<DisplayUser>> usersService() {
     return ResponseEntity.ok(
         userRepository.findAllUsers().stream()
@@ -78,10 +83,12 @@ public class MissingFunctionACUsers {
       consumes = "application/json",
       produces = "application/json")
   @ResponseBody
-  public User addUser(@RequestBody User newUser) {
+  @PreAuthorize("hasAuthority('WEBGOAT_ADMIN')")
+  public User addUser(@RequestBody NewUserRequest request) {
     try {
-      userRepository.save(newUser);
-      return newUser;
+      User user = new User(request.getUsername(), request.getPassword(), false);
+      userRepository.save(user);
+      return user;
     } catch (Exception ex) {
       log.error("Error creating new User", ex);
       return null;
@@ -91,5 +98,13 @@ public class MissingFunctionACUsers {
     // "application/json", produces = "application/json")
     // TODO implement delete method with id param and authorization
 
+  }
+
+  @Data
+  @NoArgsConstructor
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static class NewUserRequest {
+    private String username;
+    private String password;
   }
 }

@@ -11,7 +11,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.impl.TextCodec;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Calendar;
@@ -33,14 +32,16 @@ public class JWTSecretKeyEndpoint implements AssignmentEndpoint {
 
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-  public static final String[] SECRETS = {
-    "victory", "business", "available", "shipping", "washington"
-  };
-  public static final String JWT_SECRET =
-      TextCodec.BASE64.encode(SECRETS[SECURE_RANDOM.nextInt(SECRETS.length)]);
+  private static final byte[] JWT_SECRET = generateSecret();
   private static final String WEBGOAT_USER = "WebGoat";
   private static final List<String> expectedClaims =
       List.of("iss", "iat", "exp", "aud", "sub", "username", "Email", "Role");
+
+  private static byte[] generateSecret() {
+    byte[] key = new byte[32];
+    SECURE_RANDOM.nextBytes(key);
+    return key;
+  }
 
   @RequestMapping(path = "/JWT/secret/gettoken", produces = MediaType.TEXT_HTML_VALUE)
   @ResponseBody
