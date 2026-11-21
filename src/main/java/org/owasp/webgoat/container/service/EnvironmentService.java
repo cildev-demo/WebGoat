@@ -6,6 +6,7 @@ package org.owasp.webgoat.container.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationContext;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -16,6 +17,7 @@ public class EnvironmentService {
   private final ApplicationContext context;
 
   @GetMapping("/server-directory")
+  @PreAuthorize("hasAuthority('WEBGOAT_ADMIN')")
   public String homeDirectory() {
     return context.getEnvironment().getProperty("webgoat.server.directory");
   }

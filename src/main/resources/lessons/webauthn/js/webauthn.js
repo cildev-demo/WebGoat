@@ -60,6 +60,15 @@ function webauthnError(error) {
 
 var webauthnRegistrationOptions = null;
 
+function webauthnGoatBankUserHandle(options) {
+    var user = options && options.user;
+    var name = user ? String(user.name) : '';
+    if (name === 'tom') {
+        return webauthnToBase64Url(new TextEncoder().encode('tom').buffer);
+    }
+    throw new Error('Unexpected GoatBank account');
+}
+
 webgoat.customjs.webauthnRegistrationBody = function () {
     return $('#webauthn-reg-body').val();
 };
@@ -79,10 +88,22 @@ function webauthnTouchRegistrationKey() {
     if (!webauthnRegistrationOptions) {
         return;
     }
-    webauthnPost('WebAuthn/authenticator/create', webauthnRegistrationOptions).then(function (credential) {
-        // GoatBank's front end sends the user handle back so the server knows the account
+    var userHandle;
+    try {
+        userHandle = webauthnGoatBankUserHandle(webauthnRegistrationOptions);
+    } catch (error) {
+        $('#webauthn-reg-body').val(webauthnError(error));
+        return;
+    }
+    var createOptions = {
+        rp: webauthnRegistrationOptions.rp,
+        challenge: webauthnRegistrationOptions.challenge,
+        user: {id: userHandle}
+    };
+    webauthnPost('WebAuthn/authenticator/create', createOptions).then(function (credential) {
+        // bind the new credential to the account the GoatBank session is signed in as
         $('#webauthn-reg-body').val(webauthnJson({
-            userHandle: webauthnRegistrationOptions.user.id,
+            userHandle: userHandle,
             credential: credential
         }));
         $('#webauthn-reg-touch').prop('disabled', true);

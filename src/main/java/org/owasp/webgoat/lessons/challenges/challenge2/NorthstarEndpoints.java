@@ -14,13 +14,30 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class NorthstarEndpoints {
 
+  private static final String PUBLISHER_SITE = "https://example.org";
+  private static final String FEED_PATH = "/northstar/feeds";
+  private static final String REDIRECT_PATH = "/northstar/go";
+  private static final String CONTEXT_FEED_PATH = "/WebGoat/northstar/feeds";
+  private static final String CONTEXT_REDIRECT_PATH = "/WebGoat/northstar/go";
+
   @GetMapping("/northstar/go")
   public ResponseEntity<Void> redirect(@RequestParam String url) {
-    try {
-      return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(url)).build();
-    } catch (IllegalArgumentException e) {
-      return ResponseEntity.badRequest().build();
+    if (PUBLISHER_SITE.equals(url)) {
+      return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(PUBLISHER_SITE)).build();
     }
+    if (FEED_PATH.equals(url)) {
+      return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(FEED_PATH)).build();
+    }
+    if (REDIRECT_PATH.equals(url)) {
+      return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(REDIRECT_PATH)).build();
+    }
+    if (CONTEXT_FEED_PATH.equals(url)) {
+      return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(CONTEXT_FEED_PATH)).build();
+    }
+    if (CONTEXT_REDIRECT_PATH.equals(url)) {
+      return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(CONTEXT_REDIRECT_PATH)).build();
+    }
+    return ResponseEntity.badRequest().build();
   }
 
   @GetMapping("/northstar/feeds")
