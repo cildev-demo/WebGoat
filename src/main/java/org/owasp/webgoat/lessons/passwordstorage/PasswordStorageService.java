@@ -118,7 +118,7 @@ public class PasswordStorageService {
       byte[] candidateOutput = argon2id(candidate, AUTHOR_SALT);
       String candidateVerifier = hmac(candidateOutput, PEPPER);
       if (constantTimeEquals(pepperedVerifier, candidateVerifier)) {
-        cachedCrackResult = new CrackResult(Optional.of(candidate), tested);
+        cachedCrackResult = new CrackResult(Optional.of("[withheld]"), tested);
         return cachedCrackResult;
       }
     }
@@ -202,5 +202,9 @@ public class PasswordStorageService {
       String verifierAlgorithm,
       String verifier) {}
 
-  public record CrackResult(Optional<String> password, int candidatesTested) {}
+  public record CrackResult(Optional<String> password, int candidatesTested) {
+    public boolean matched() {
+      return password.isPresent();
+    }
+  }
 }

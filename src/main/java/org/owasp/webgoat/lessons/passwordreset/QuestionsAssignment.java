@@ -44,10 +44,7 @@ public class QuestionsAssignment implements AssignmentEndpoint {
 
     String validAnswer = COLORS.get(username.toLowerCase());
     if (validAnswer == null) {
-      return failed(this)
-          .feedback("password-questions-unknown-user")
-          .feedbackArgs(username)
-          .build();
+      return failed(this).build();
     } else if (validAnswer.equals(securityQuestion)) {
       return success(this).build();
     }

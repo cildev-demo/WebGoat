@@ -44,7 +44,13 @@ public class WebSecurityConfig {
               auth.requestMatchers(HttpMethod.POST, "/files", "/requests").permitAll();
               auth.anyRequest().authenticated();
             })
-        .csrf(csrf -> csrf.disable())
+        .csrf(
+            csrf ->
+                csrf
+                    // The landing endpoint intentionally receives cross-site callbacks from
+                    // WebGoat lessons and external tools; those callers have no WebWolf token.
+                    // JWT encode/decode are stateless and do not change server-side state.
+                    .ignoringRequestMatchers("/landing/**", "/jwt/**"))
         .formLogin(
             login ->
                 login
@@ -58,7 +64,13 @@ public class WebSecurityConfig {
             oidc -> {
               oidc.defaultSuccessUrl("/home");
             })
-        .logout(logout -> logout.deleteCookies("WEBWOLFSESSION").invalidateHttpSession(true))
+        .logout(
+            logout ->
+                logout
+                    // Keep the existing GET logout navigation working with CSRF enabled.
+                    .logoutRequestMatcher(request -> "/logout".equals(request.getServletPath()))
+                    .deleteCookies("WEBWOLFSESSION")
+                    .invalidateHttpSession(true))
         .exceptionHandling(
             handling ->
                 handling.authenticationEntryPoint(new AjaxAuthenticationEntryPoint("/login")))
