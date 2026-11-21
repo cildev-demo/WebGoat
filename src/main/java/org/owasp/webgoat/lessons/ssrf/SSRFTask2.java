@@ -19,10 +19,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
 
 @RestController
 @AssignmentHints({"ssrf.hint3"})
 public class SSRFTask2 implements AssignmentEndpoint {
+
+  private static final String IFCONFIG_URL = "http://ifconfig.pro";
 
   @PostMapping("/SSRF/task2")
   @ResponseBody
@@ -31,12 +34,13 @@ public class SSRFTask2 implements AssignmentEndpoint {
   }
 
   protected AttackResult furBall(String url) {
-    if (url.matches("http://ifconfig\\.pro")) {
+    if (IFCONFIG_URL.equals(url)) {
       String html;
-      try (InputStream in = new URL(url).openStream()) {
+      try (InputStream in = new URL(IFCONFIG_URL).openStream()) {
         html =
-            new String(in.readAllBytes(), StandardCharsets.UTF_8)
-                .replaceAll("\n", "<br>"); // Otherwise the \n gets escaped in the response
+            HtmlUtils.htmlEscape(
+                    new String(in.readAllBytes(), StandardCharsets.UTF_8))
+                .replace("\n", "<br>");
       } catch (MalformedURLException e) {
         return getFailedResult(e.getMessage());
       } catch (IOException e) {

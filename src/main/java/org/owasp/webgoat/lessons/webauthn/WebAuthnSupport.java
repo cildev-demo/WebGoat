@@ -358,9 +358,9 @@ public final class WebAuthnSupport {
         case "fido-u2f" -> verifyFidoU2f(attStmt, authData, clientDataHash);
         default ->
             new AttestationResult(
-                true,
-                "Unverified",
-                "Attestation format '%s' is not verified by WebGoat".formatted(attestation.fmt()));
+                false,
+                "Unsupported",
+                "Attestation format is not verified by WebGoat");
       };
     } catch (GeneralSecurityException | ClassCastException | NullPointerException e) {
       return new AttestationResult(false, attestation.fmt(), "Invalid attestation: " + e);
