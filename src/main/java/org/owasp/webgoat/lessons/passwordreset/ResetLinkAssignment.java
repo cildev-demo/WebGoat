@@ -9,10 +9,12 @@ import static org.owasp.webgoat.container.assignments.AttackResultBuilder.succes
 import static org.springframework.util.StringUtils.hasText;
 
 import com.google.common.collect.Maps;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.owasp.webgoat.container.CurrentUsername;
 import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
 import org.owasp.webgoat.container.assignments.AssignmentHints;
@@ -41,12 +43,49 @@ import org.springframework.web.servlet.ModelAndView;
 public class ResetLinkAssignment implements AssignmentEndpoint {
 
   private static final String VIEW_FORMATTER = "lessons/passwordreset/templates/%s.html";
+  private static final Duration RESET_LINK_TTL = Duration.ofMinutes(15);
   static final String PASSWORD_TOM_9 =
       "somethingVeryRandomWhichNoOneWillEverTypeInAsPasswordForTom";
   static final String TOM_EMAIL = "tom@webgoat-cloud.org";
   static Map<String, String> userToTomResetLink = new HashMap<>();
   static Map<String, String> usersToTomPassword = Maps.newHashMap();
-  static List<String> resetLinks = new ArrayList<>();
+  static ResetLinkList resetLinks = new ResetLinkList();
+
+  static final class ResetLinkList extends ArrayList<String> {
+
+    private final Map<String, Instant> issuedAt = new ConcurrentHashMap<>();
+
+    @Override
+    public synchronized boolean add(String link) {
+      issuedAt.put(link, Instant.now());
+      return super.add(link);
+    }
+
+    @Override
+    public synchronized boolean contains(Object link) {
+      if (!(link instanceof String token)) {
+        return false;
+      }
+      Instant created = issuedAt.get(token);
+      return created != null
+          && !Instant.now().isAfter(created.plus(RESET_LINK_TTL))
+          && super.contains(token);
+    }
+
+    synchronized boolean consume(String link) {
+      if (!contains(link)) {
+        return false;
+      }
+      issuedAt.remove(link);
+      return super.remove(link);
+    }
+
+    @Override
+    public synchronized void clear() {
+      super.clear();
+      issuedAt.clear();
+    }
+  }
 
   static final String TEMPLATE =
       """
@@ -106,11 +145,17 @@ public class ResetLinkAssignment implements AssignmentEndpoint {
       modelAndView.setViewName(VIEW_FORMATTER.formatted("password_reset"));
       return modelAndView;
     }
-    if (!resetLinks.contains(form.getResetLink())) {
+    String resetLink = form.getResetLink();
+    if (!resetLinks.contains(resetLink)) {
       modelAndView.setViewName(VIEW_FORMATTER.formatted("password_link_not_found"));
       return modelAndView;
     }
-    if (checkIfLinkIsFromTom(form.getResetLink(), username)) {
+    boolean issuedToCurrentUser = checkIfLinkIsFromTom(resetLink, username);
+    if (!resetLinks.consume(resetLink)) {
+      modelAndView.setViewName(VIEW_FORMATTER.formatted("password_link_not_found"));
+      return modelAndView;
+    }
+    if (issuedToCurrentUser) {
       usersToTomPassword.put(username, form.getPassword());
     }
     modelAndView.setViewName(VIEW_FORMATTER.formatted("success"));
