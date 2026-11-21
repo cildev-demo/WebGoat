@@ -48,14 +48,14 @@ public class VulnerableTaskHolder implements Serializable {
     stream.defaultReadObject();
 
     // do something with the data
-    log.info("restoring task: {}", taskName);
-    log.info("restoring time: {}", requestedExecutionTime);
+    log.info("restoring task");
+    log.info("restoring time");
 
     if (requestedExecutionTime != null
         && (requestedExecutionTime.isBefore(LocalDateTime.now().minusMinutes(10))
             || requestedExecutionTime.isAfter(LocalDateTime.now()))) {
       // do nothing is the time is not within 10 minutes after the object has been created
-      log.debug(this.toString());
+      log.debug("task requested outside allowed execution window");
       throw new IllegalArgumentException("outdated");
     }
 
