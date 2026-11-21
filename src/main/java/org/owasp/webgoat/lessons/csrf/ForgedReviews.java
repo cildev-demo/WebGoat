@@ -10,6 +10,7 @@ import static org.springframework.http.MediaType.ALL_VALUE;
 
 import com.google.common.collect.Lists;
 import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -35,7 +36,6 @@ public class ForgedReviews implements AssignmentEndpoint {
 
   private static final Map<String, List<Review>> userReviews = new HashMap<>();
   private static final List<Review> REVIEWS = new ArrayList<>();
-  private static final String weakAntiCSRF = "2aa14227b9a13d0bede0388a7fba9aa9";
 
   static {
     REVIEWS.add(
@@ -75,10 +75,9 @@ public class ForgedReviews implements AssignmentEndpoint {
       String validateReq,
       HttpServletRequest request,
       @CurrentUsername String username) {
-    final String host = (request.getHeader("host") == null) ? "NULL" : request.getHeader("host");
-    final String referer =
-        (request.getHeader("referer") == null) ? "NULL" : request.getHeader("referer");
-    final String[] refererArr = referer.split("/");
+    if (!isSameOrigin(request)) {
+      return failed(this).feedback("csrf-you-forgot-something").build();
+    }
 
     Review review = new Review();
     review.setText(reviewText);
@@ -88,17 +87,33 @@ public class ForgedReviews implements AssignmentEndpoint {
     var reviews = userReviews.getOrDefault(username, new ArrayList<>());
     reviews.add(review);
     userReviews.put(username, reviews);
-    // short-circuit
-    if (validateReq == null || !validateReq.equals(weakAntiCSRF)) {
-      return failed(this).feedback("csrf-you-forgot-something").build();
+
+    return success(this).feedback("csrf-review.success").build();
+  }
+
+  private boolean isSameOrigin(HttpServletRequest request) {
+    String origin = request.getHeader("Origin");
+    String referer = request.getHeader("Referer");
+    String source = origin != null ? origin : referer;
+    if (source == null || source.isEmpty()) {
+      return false;
     }
-    // we have the spoofed files
-    if (referer != "NULL" && refererArr[2].equals(host)) {
-      return failed(this).feedback("csrf-same-host").build();
-    } else {
-      return success(this)
-          .feedback("csrf-review.success")
-          .build(); // feedback("xss-stored-comment-failure")
+    try {
+      URI sourceUri = URI.create(source);
+      String scheme = sourceUri.getScheme();
+      String host = sourceUri.getHost();
+      if (scheme == null || host == null) {
+        return false;
+      }
+      int sourcePort = sourceUri.getPort();
+      if (sourcePort == -1) {
+        sourcePort = "https".equalsIgnoreCase(scheme) ? 443 : 80;
+      }
+      return scheme.equalsIgnoreCase(request.getScheme())
+          && host.equalsIgnoreCase(request.getServerName())
+          && sourcePort == request.getServerPort();
+    } catch (IllegalArgumentException invalidUri) {
+      return false;
     }
   }
 }

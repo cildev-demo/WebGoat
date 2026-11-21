@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
 
 @RestController
 @AssignmentHints(
@@ -43,6 +44,7 @@ public class SqlInjectionLesson5b implements AssignmentEndpoint {
 
   protected AttackResult injectableQuery(String login_count, String accountName) {
     String queryString = "SELECT * From user_data WHERE Login_Count = ? and userid= ?";
+    String safeLoginCount = HtmlUtils.htmlEscape(login_count);
     try (Connection connection = dataSource.getConnection()) {
       PreparedStatement query =
           connection.prepareStatement(
@@ -55,10 +57,10 @@ public class SqlInjectionLesson5b implements AssignmentEndpoint {
         return failed(this)
             .output(
                 "Could not parse: "
-                    + login_count
+                    + safeLoginCount
                     + " to a number"
                     + "<br> Your query was: "
-                    + queryString.replace("?", login_count))
+                    + queryString.replace("?", safeLoginCount))
             .build();
       }
 
@@ -80,7 +82,7 @@ public class SqlInjectionLesson5b implements AssignmentEndpoint {
           if (results.getRow() >= 6) {
             return success(this)
                 .feedback("sql-injection.5b.success")
-                .output("Your query was: " + queryString.replace("?", login_count))
+                .output("Your query was: " + queryString.replace("?", safeLoginCount))
                 .feedbackArgs(output.toString())
                 .build();
           } else {
@@ -88,21 +90,23 @@ public class SqlInjectionLesson5b implements AssignmentEndpoint {
                 .output(
                     output.toString()
                         + "<br> Your query was: "
-                        + queryString.replace("?", login_count))
+                        + queryString.replace("?", safeLoginCount))
                 .build();
           }
 
         } else {
           return failed(this)
               .feedback("sql-injection.5b.no.results")
-              .output("Your query was: " + queryString.replace("?", login_count))
+              .output("Your query was: " + queryString.replace("?", safeLoginCount))
               .build();
         }
       } catch (SQLException sqle) {
 
         return failed(this)
             .output(
-                sqle.getMessage() + "<br> Your query was: " + queryString.replace("?", login_count))
+                HtmlUtils.htmlEscape(sqle.getMessage())
+                    + "<br> Your query was: "
+                    + queryString.replace("?", safeLoginCount))
             .build();
       }
     } catch (Exception e) {
@@ -110,9 +114,9 @@ public class SqlInjectionLesson5b implements AssignmentEndpoint {
           .output(
               this.getClass().getName()
                   + " : "
-                  + e.getMessage()
+                  + HtmlUtils.htmlEscape(e.getMessage())
                   + "<br> Your query was: "
-                  + queryString.replace("?", login_count))
+                  + queryString.replace("?", safeLoginCount))
           .build();
     }
   }
