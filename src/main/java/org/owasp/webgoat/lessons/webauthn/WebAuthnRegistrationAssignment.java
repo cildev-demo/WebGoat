@@ -10,6 +10,7 @@ import static org.owasp.webgoat.container.assignments.AttackResultBuilder.succes
 import static org.owasp.webgoat.lessons.webauthn.GoatBankCeremonyEndpoints.REGISTRATION_CHALLENGE;
 import static org.owasp.webgoat.lessons.webauthn.WebAuthnLessonState.JERRY;
 import static org.owasp.webgoat.lessons.webauthn.WebAuthnLessonState.RP_NAME;
+import static org.owasp.webgoat.lessons.webauthn.WebAuthnLessonState.TOM;
 import static org.owasp.webgoat.lessons.webauthn.WebAuthnSupport.path;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -105,10 +106,16 @@ public class WebAuthnRegistrationAssignment implements AssignmentEndpoint {
         return rejected("credential is already registered");
       }
 
-      // The options endpoint sent Tom's user handle to the browser, the browser sends it back
-      // and we use it to find out which account the new key belongs to.
-      byte[] userHandle = WebAuthnSupport.fromBase64Url((String) body.get("userHandle"));
-      String account = new String(userHandle, StandardCharsets.UTF_8);
+      // The account is the account the signed-in GoatBank user manages; the user handle sent by
+      // the browser is only checked against the server-side value, never used to choose an account.
+      byte[] userHandle = WebAuthnLessonState.userHandle(TOM);
+      Object suppliedUserHandle = body.get("userHandle");
+      if (suppliedUserHandle == null
+          || !MessageDigest.isEqual(
+              userHandle, WebAuthnSupport.fromBase64Url(String.valueOf(suppliedUserHandle)))) {
+        return rejected("user handle does not belong to the signed-in account");
+      }
+      String account = TOM;
       if (!WebAuthnLessonState.ACCOUNTS.contains(account)) {
         return failed(this)
             .feedback("webauthn.registration.unknown-account")
