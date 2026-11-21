@@ -7,6 +7,7 @@ package org.owasp.webgoat.lessons.commandinjection;
 import static org.owasp.webgoat.container.assignments.AttackResultBuilder.failed;
 import static org.owasp.webgoat.container.assignments.AttackResultBuilder.success;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -16,10 +17,12 @@ import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
 import org.owasp.webgoat.container.assignments.AssignmentHints;
 import org.owasp.webgoat.container.assignments.AttackResult;
 import org.owasp.webgoat.container.users.WebGoatUser;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /** Task 2: demonstrate simple command chaining injection. */
 @RestController
@@ -50,9 +53,38 @@ public class CommandInjectionTask2 implements AssignmentEndpoint {
       @RequestParam(value = "token", required = false) String token) {
 
     safetyService.requireAcknowledgement(user);
-    String command = buildCommand(baseCommand, payload);
+    if (payload != null && !payload.isBlank()) {
+      throw invalidRequest();
+    }
+
+    String requested = baseCommand == null ? "" : baseCommand.trim();
+    List<String> command;
+    if (requested.isEmpty()) {
+      command = CommandExecutionService.isWindows() ? List.of("ver") : List.of("uname", "-a");
+    } else if ("ver".equals(requested)) {
+      command = List.of("ver");
+    } else if ("uname -a".equals(requested)) {
+      command = List.of("uname", "-a");
+    } else if ("uname".equals(requested)) {
+      command = List.of("uname");
+    } else if ("hostname".equals(requested)) {
+      command = List.of("hostname");
+    } else if ("uptime".equals(requested)) {
+      command = List.of("uptime");
+    } else if ("whoami".equals(requested)) {
+      command = List.of("whoami");
+    } else if ("pwd".equals(requested)) {
+      command = List.of("pwd");
+    } else if ("id".equals(requested)) {
+      command = List.of("id");
+    } else if ("date".equals(requested)) {
+      command = List.of("date");
+    } else {
+      throw invalidRequest();
+    }
+
     CommandExecutionResult result =
-        commandExecutionService.execute(null, command, Map.of("WEBGOAT_BUILD_TOKEN", LEAKED_TOKEN));
+        commandExecutionService.executeDirect(null, command, Map.of());
     String output = formatOutput(result);
 
     if (token == null || token.isBlank()) {
@@ -67,12 +99,30 @@ public class CommandInjectionTask2 implements AssignmentEndpoint {
   }
 
   String buildCommand(String base, String payload) {
-    String safeBase =
-        (base == null || base.isBlank())
-            ? (CommandExecutionService.isWindows() ? "ver" : "uname -a")
-            : base;
-    String userPart = (payload == null) ? "" : payload.trim();
-    return safeBase + (userPart.isEmpty() ? "" : " " + userPart);
+    if (payload != null && !payload.isBlank()) {
+      throw invalidRequest();
+    }
+    String requested = base == null ? "" : base.trim();
+    if (requested.isEmpty()) {
+      return CommandExecutionService.isWindows() ? "ver" : "uname -a";
+    }
+    return switch (requested) {
+      case "ver" -> "ver";
+      case "uname -a" -> "uname -a";
+      case "uname" -> "uname";
+      case "hostname" -> "hostname";
+      case "uptime" -> "uptime";
+      case "whoami" -> "whoami";
+      case "pwd" -> "pwd";
+      case "id" -> "id";
+      case "date" -> "date";
+      default -> throw invalidRequest();
+    };
+  }
+
+  private ResponseStatusException invalidRequest() {
+    return new ResponseStatusException(
+        HttpStatus.BAD_REQUEST, "commandinjection.task2.failure.mismatch");
   }
 
   boolean matchesToken(String submittedToken) {

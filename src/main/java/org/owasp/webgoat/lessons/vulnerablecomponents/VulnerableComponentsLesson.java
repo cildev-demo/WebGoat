@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -46,7 +47,10 @@ public class VulnerableComponentsLesson implements AssignmentEndpoint {
       }
       contact = parseContact(payload);
     } catch (Exception ex) {
-      return failed(this).feedback("vulnerable-components.close").output(ex.getMessage()).build();
+      return failed(this)
+          .feedback("vulnerable-components.close")
+          .output(HtmlUtils.htmlEscape(ex.getMessage()))
+          .build();
     }
 
     try {
@@ -57,7 +61,10 @@ public class VulnerableComponentsLesson implements AssignmentEndpoint {
         return success(this).feedback("vulnerable-components.success").build();
       }
     } catch (Exception e) {
-      return success(this).feedback("vulnerable-components.success").output(e.getMessage()).build();
+      return success(this)
+          .feedback("vulnerable-components.success")
+          .output(HtmlUtils.htmlEscape(e.getMessage()))
+          .build();
     }
     return failed(this).feedback("vulnerable-components.fromXML").feedbackArgs(contact).build();
   }

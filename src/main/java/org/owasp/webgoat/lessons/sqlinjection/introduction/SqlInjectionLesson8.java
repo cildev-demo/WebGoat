@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
 
 @RestController
 @AssignmentHints(
@@ -82,13 +83,19 @@ public class SqlInjectionLesson8 implements AssignmentEndpoint {
         }
       } catch (SQLException e) {
         return failed(this)
-            .output("<br><span class='feedback-negative'>" + e.getMessage() + "</span>")
+            .output(
+                "<br><span class='feedback-negative'>"
+                    + HtmlUtils.htmlEscape(e.getMessage())
+                    + "</span>")
             .build();
       }
 
     } catch (Exception e) {
       return failed(this)
-          .output("<br><span class='feedback-negative'>" + e.getMessage() + "</span>")
+          .output(
+              "<br><span class='feedback-negative'>"
+                  + HtmlUtils.htmlEscape(e.getMessage())
+                  + "</span>")
           .build();
     }
   }
@@ -103,7 +110,7 @@ public class SqlInjectionLesson8 implements AssignmentEndpoint {
     if (results.next()) {
       table.append("<tr>");
       for (int i = 1; i < (numColumns + 1); i++) {
-        table.append("<th>" + resultsMetaData.getColumnName(i) + "</th>");
+        table.append("<th>" + HtmlUtils.htmlEscape(resultsMetaData.getColumnName(i)) + "</th>");
       }
       table.append("</tr>");
 
@@ -111,7 +118,7 @@ public class SqlInjectionLesson8 implements AssignmentEndpoint {
       while (results.next()) {
         table.append("<tr>");
         for (int i = 1; i < (numColumns + 1); i++) {
-          table.append("<td>" + results.getString(i) + "</td>");
+          table.append("<td>" + HtmlUtils.htmlEscape(results.getString(i)) + "</td>");
         }
         table.append("</tr>");
       }
