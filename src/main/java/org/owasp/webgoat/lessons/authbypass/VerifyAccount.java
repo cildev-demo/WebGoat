@@ -54,13 +54,32 @@ public class VerifyAccount implements AssignmentEndpoint {
           .build();
     }
 
+    String accountId = accountIdFor(req);
+    if (accountId == null || !accountId.equals(userId)) {
+      return failed(this).feedback("verify-account.failed").build();
+    }
+
     // else
-    if (verificationHelper.verifyAccount(Integer.valueOf(userId), (HashMap<String, String>) submittedAnswers)) {
-      userSessionData.setValue("account-verified-id", userId);
+    if (verificationHelper.verifyAccount(accountId.hashCode(), (HashMap<String, String>) submittedAnswers)) {
+      userSessionData.setValue("account-verified-id", accountId);
       return success(this).feedback("verify-account.success").build();
     } else {
       return failed(this).feedback("verify-account.failed").build();
     }
+  }
+
+  private String accountIdFor(HttpServletRequest req) {
+    Object verifiedAccountId = userSessionData.getValue("account-verified-id");
+    if (verifiedAccountId != null && !verifiedAccountId.toString().isBlank()) {
+      return verifiedAccountId.toString();
+    }
+    if (req.getUserPrincipal() != null) {
+      String username = req.getUserPrincipal().getName();
+      if (username != null && !username.isBlank()) {
+        return username;
+      }
+    }
+    return null;
   }
 
   private HashMap<String, String> parseSecQuestions(HttpServletRequest req) {
